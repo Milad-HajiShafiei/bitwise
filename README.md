@@ -30,6 +30,19 @@ bw.set_multiple_bits(&[1, 2, 4])?;
 println!("{}", bw.to_string(Some(4)));
 ```
 
+## Documentation
+Run the following command in the repo directory and open generated HTML file (by clicking the path generated in the terminal) for documentation:
+```bash
+cargo doc
+```
+
+## Testing
+Run the following command in the repo directory for testing:
+```bash
+cargo test
+```
+
+
 ## API
 | Method | Description |
 |---|---|
