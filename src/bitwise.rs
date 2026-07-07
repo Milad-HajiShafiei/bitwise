@@ -1,14 +1,35 @@
 use std::io::Error;
 
+/// A wrapper around a `u64` that provides bit-level operations,
+/// treating the value as a sequence of 64 individually addressable bits
+/// (indices `0..=63`, where index `0` is the least-significant bit).
+///
+/// Useful for bitboards, flag sets, or any scenario where individual bits
+/// of a 64-bit integer need to be read, set, cleared, or flipped safely
+/// (i.e., with bounds checking on the bit index).
 pub struct Bitwise {
+    /// The underlying 64-bit value being manipulated.
     pub data: u64,
 }
 
 impl Bitwise {
+    /// Creates a new `Bitwise` instance wrapping the given `u64` value.
+    ///
+    /// # Arguments
+    /// * `data` - The initial 64-bit value.
+    ///
     pub fn new(data: u64) -> Self {
         Self { data }
     }
 
+    /// Validates that a single bit index falls within the valid range `[0, 64)`.
+    ///
+    /// # Arguments
+    /// * `index` - The bit index to validate.
+    ///
+    /// # Errors
+    /// Returns an `Error` if `index > 63`, since a `u64` only has 64 valid
+    /// bit positions.
     pub fn validate_index_range(index: u8) -> Result<(), Error> {
         if index > 63 {
             return Err(Error::other(
@@ -19,6 +40,16 @@ impl Bitwise {
         Ok(())
     }
 
+    /// Validates that every index in a slice falls within the valid range `[0, 64)`.
+    ///
+    /// Unlike [`validate_index_range`](Self::validate_index_range), this collects
+    /// *all* out-of-range indices before returning, rather than failing on the first one.
+    ///
+    /// # Arguments
+    /// * `indicies` - A slice of bit indices to validate.
+    ///
+    /// # Errors
+    /// Returns an `Error` listing all offending indices if any index is greater than 63.
     pub fn validate_indicies_range(indicies: &[u8]) -> Result<(), Error> {
         let mut outrange_indicies = vec![];
 
@@ -38,29 +69,30 @@ impl Bitwise {
         Ok(())
     }
 
-    /*
-    Scan Bits (find the value or a bit) -> Scanning a bit using AND(&):
-    Example: Find Value of Digit 3
-         1011 1110 <- Data
-        &0000 0100 <- Mask
-         ---------
-         0000 0100 <- Raw Result
-         0000 0001 <- Shifted Result
-    */
+    /// Reads the value of the bit at the given index.
+    ///
+    /// # Arguments
+    /// * `index` - The bit position to read (must be in `[0, 64)`).
+    ///
+    /// # Returns
+    /// `Ok(1)` if the bit is set, `Ok(0)` if it is unset.
+    ///
+    /// # Errors
+    /// Returns an `Error` if `index` is out of range (see
+    /// [`validate_index_range`](Self::validate_index_range)).
     pub fn scan_bit(&self, index: u8) -> Result<u8, Error> {
         Self::validate_index_range(index)?;
 
         Ok(((self.data & (1 << index)) >> index) as u8)
     }
 
-    /*
-    Set Bits (set the bit/bits to 1) -> Setting a bit using OR(|):
-    Example: Set digit 7 to 1
-         1011 1110 <- Data
-        |0100 0000 <- Mask
-         ---------
-         1111 1110 <- Result
-    */
+    /// Sets (to `1`) the bit at the given index.
+    ///
+    /// # Arguments
+    /// * `index` - The bit position to set (must be in `[0, 64)`).
+    ///
+    /// # Errors
+    /// Returns an `Error` if `index` is out of range.
     pub fn set_bit(&mut self, index: u8) -> Result<(), Error> {
         Self::validate_index_range(index)?;
 
@@ -69,6 +101,14 @@ impl Bitwise {
         Ok(())
     }
 
+    /// Sets (to `1`) all bits at the given indices.
+    ///
+    /// # Arguments
+    /// * `indicies` - A slice of bit positions to set (each must be in `[0, 64)`).
+    ///
+    /// # Errors
+    /// Returns an `Error` listing any out-of-range indices; in that case
+    /// no bits are modified.
     pub fn set_multiple_bits(&mut self, indicies: &[u8]) -> Result<(), Error> {
         Self::validate_indicies_range(indicies)?;
 
@@ -83,20 +123,13 @@ impl Bitwise {
         Ok(())
     }
 
-    /*
-    Clear Bits (set the bit/bits to 0) -> Clearing a digit to 0 using OR(|) and NOT(!):
-    Example: Clear digit 5 to 0
-         1111 0101 <- Data
-        ! invert
-         ---------
-         0000 1010 <- Inverted
-        |0001 0000 <- Mask
-         ---------
-         0001 1010 <- Masked
-        ! invert
-         ---------
-         1110 0101 <- Result
-    */
+    /// Clears (sets to `0`) the bit at the given index.
+    ///
+    /// # Arguments
+    /// * `index` - The bit position to clear (must be in `[0, 64)`).
+    ///
+    /// # Errors
+    /// Returns an `Error` if `index` is out of range.
     pub fn clear_bit(&mut self, index: u8) -> Result<(), Error> {
         Self::validate_index_range(index)?;
 
@@ -105,6 +138,14 @@ impl Bitwise {
         Ok(())
     }
 
+    /// Clears (sets to `0`) all bits at the given indices.
+    ///
+    /// # Arguments
+    /// * `indicies` - A slice of bit positions to clear (each must be in `[0, 64)`).
+    ///
+    /// # Errors
+    /// Returns an `Error` listing any out-of-range indices; in that case
+    /// no bits are modified.
     pub fn clear_multiple_bits(&mut self, indicies: &[u8]) -> Result<(), Error> {
         Self::validate_indicies_range(indicies)?;
 
@@ -116,14 +157,13 @@ impl Bitwise {
         Ok(())
     }
 
-    /*
-    Toggle Bits (set a bit/bits to the binary opposite) -> Toggling/Flipping a bit using XOR(^):
-    Example: Toggle digit 3
-         1011 1110 <- Data
-        ^0000 0100 <- Mask
-         ---------
-         1011 1010 <- Result
-    */
+    /// Flips (toggles) the bit at the given index: `0` becomes `1` and vice versa.
+    ///
+    /// # Arguments
+    /// * `index` - The bit position to flip (must be in `[0, 64)`).
+    ///
+    /// # Errors
+    /// Returns an `Error` if `index` is out of range.
     pub fn flip_bit(&mut self, index: u8) -> Result<(), Error> {
         Self::validate_index_range(index)?;
 
@@ -132,6 +172,14 @@ impl Bitwise {
         Ok(())
     }
 
+    /// Flips (toggles) all bits at the given indices.
+    ///
+    /// # Arguments
+    /// * `indicies` - A slice of bit positions to flip (each must be in `[0, 64)`).
+    ///
+    /// # Errors
+    /// Returns an `Error` listing any out-of-range indices; in that case
+    /// no bits are modified.
     pub fn flip_multiple_bits(&mut self, indicies: &[u8]) -> Result<(), Error> {
         Self::validate_indicies_range(indicies)?;
 
@@ -146,7 +194,32 @@ impl Bitwise {
         Ok(())
     }
 
-    // Display the data as a string
+    /// Renders the 64 bits as an 8x8 text grid (8 rows of 8 bits each),
+    /// useful for visualizing bitboards (e.g., chess-style boards).
+    ///
+    /// Each cell is rendered as:
+    /// - `" 1 "` if the bit is set,
+    /// - `" . "` if the bit is unset,
+    /// - `" X "` if its index equals `mark` (overriding the set/unset rendering).
+    ///
+    /// Rows are separated by newlines, with a new row starting every 8 bits.
+    ///
+    /// # Arguments
+    /// * `mark` - An optional bit index to highlight with `" X "` instead of its actual value.
+    ///
+    /// # Returns
+    /// A `String` containing the rendered 8x8 grid.
+    ///
+    /// # Panics
+    /// Panics if an internal call to [`scan_bit`](Self::scan_bit) fails, which
+    /// should not happen since indices `0..64` are always in range.
+    ///
+    /// # Note
+    /// If `mark` is `None`, no bit values are rendered into the grid cells
+    /// (the `Some(mark)` branch is required for any cell content to be pushed),
+    /// so calling `to_string(None)` currently produces only blank rows.
+    /// Pass `Some(index)` — even an out-of-board index like `64` — to render
+    /// bit values without highlighting a specific cell.
     pub fn to_string(&self, mark: Option<u8>) -> String {
         let mut row = "".to_owned();
         let mut board = "".to_owned();
