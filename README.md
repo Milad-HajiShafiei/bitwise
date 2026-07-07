@@ -13,7 +13,7 @@ with bounds-checked get/set/clear/flip operations and an 8x8 board visualizer.
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-bitwise = { path = "." } # or version once published
+bitwise = { path = "path_of_cloned_repo" } # or version once published
 ```
 
 ## Usage
